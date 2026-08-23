@@ -76,6 +76,9 @@ function createWindow () {
     title: 'CRIME.NET',
     icon: path.join(__dirname, '..', 'build', 'icon.ico'),
     webPreferences: {
+      // Isletim sisteminin dili preload'a argumanla gecer; arayuz ilk acilista
+      // buna gore Turkce ya da Ingilizce baslar.
+      additionalArguments: [`--crimenet-locale=${app.getLocale()}`],
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,

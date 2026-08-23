@@ -524,6 +524,30 @@ input, textarea, select { font-family: inherit; font-weight: 300; user-select: t
 .chip.is-on { background: var(--cyan); border-color: var(--cyan); color: #06131e; }
 .chip.is-big { font-size: 13px; padding: 10px 20px; letter-spacing: 0.16em; }
 
+/* Silinebilir liste cipi: carpi yalnizca uzerine gelince gorunur. */
+.chip-wrap { position: relative; display: inline-flex; }
+.chip-del {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 15px;
+  height: 15px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgba(224, 65, 58, 0.6);
+  border-radius: 50%;
+  background: #16222c;
+  color: var(--red);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+.chip-wrap:hover .chip-del,
+.chip-del:focus-visible { display: flex; }
+.chip-del:hover { background: var(--red); color: #fff; }
+
 .fl-toggle {
   display: flex;
   align-items: center;
@@ -613,6 +637,8 @@ input, textarea, select { font-family: inherit; font-weight: 300; user-select: t
   padding: 20px 40px 0;
   overflow: hidden;
 }
+/* Odak ekrana programatik veriliyor; cerceve gostermesin. */
+.jobscreen:focus { outline: none; }
 .job-bg {
   position: absolute;
   inset: 0;
@@ -699,6 +725,17 @@ input, textarea, select { font-family: inherit; font-weight: 300; user-select: t
   margin-top: 6px;
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(210, 235, 250, 0.3);
+}
+
+/* Taslak sozlesme uyarisi: henuz kaydedilmedigini belli etsin. */
+.job-newhint {
+  position: relative;
+  z-index: 4;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--gold);
+  margin-top: 8px;
 }
 
 /* Her sutun kendi kaydirma alani: uzun bir yapilacaklar listesi
@@ -978,6 +1015,8 @@ input, textarea, select { font-family: inherit; font-weight: 300; user-select: t
 }
 .ready-btn:hover { color: #fff; text-shadow: 0 0 20px rgba(120, 210, 255, 0.75); }
 .ready-btn.is-ready { color: var(--green); }
+.ready-btn.is-create { color: var(--gold); }
+.ready-btn.is-create:hover { color: #fff; text-shadow: 0 0 20px rgba(242, 181, 60, 0.8); }
 .ready-box {
   display: inline-grid;
   place-items: center;
@@ -1085,6 +1124,7 @@ input, textarea, select { font-family: inherit; font-weight: 300; user-select: t
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6);
   animation: toastin 0.22s ease-out;
   max-width: 70vw;
+  pointer-events: none;
 }
 @keyframes toastin { from { opacity: 0; transform: translate(-50%, 12px); } }
 

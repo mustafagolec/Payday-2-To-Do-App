@@ -2,8 +2,11 @@
 
 const { contextBridge, ipcRenderer } = require('electron')
 
+const localeArg = process.argv.find((a) => a.startsWith('--crimenet-locale='))
+
 contextBridge.exposeInMainWorld('pd2', {
   isDesktop: true,
+  locale: localeArg ? localeArg.slice('--crimenet-locale='.length) : '',
   load: () => ipcRenderer.invoke('data:load'),
   save: (state) => ipcRenderer.invoke('data:save', state),
   exportData: (state) => ipcRenderer.invoke('data:export', state),

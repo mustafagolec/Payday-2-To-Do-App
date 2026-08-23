@@ -4,11 +4,27 @@ import {
   DIFFICULTIES, difficultyOf, progressOf, money, formatDate, dueLabel, newItem
 } from '../store'
 
-export default function JobScreen ({ t, lang, contract, crews, onPatch, onDelete, onBack, onAddCrew }) {
+export default function JobScreen ({
+  t, lang, contract, crews, isNew = false,
+  onPatch, onCreate, onDelete, onBack, onAddCrew
+}) {
   const [draft, setDraft] = useState('')
   const inputRef = useRef(null)
+  const rootRef = useRef(null)
+  const titleRef = useRef(null)
 
   useEffect(() => { setDraft('') }, [contract.id])
+
+  // Ekran degistikten sonra klavye odagini acikca bu ekrana al. Odak bosta
+  // kalirsa pencere alt-tab ile geri gelene kadar tiklama/yazma islemiyordu.
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      window.focus()
+      if (isNew) titleRef.current?.select()
+      else rootRef.current?.focus({ preventScroll: true })
+    })
+    return () => cancelAnimationFrame(id)
+  }, [contract.id, isNew])
 
   const prog = progressOf(contract)
   const diff = difficultyOf(contract.difficulty)
@@ -38,8 +54,33 @@ export default function JobScreen ({ t, lang, contract, crews, onPatch, onDelete
     onPatch({ crew: crews[(crewIndex + dir + crews.length) % crews.length] })
   }
 
+  /**
+   * DONE tum maddeleri de isaretler; oncesindeki durum `undo` alaninda saklanir,
+   * boylece UNDO ekrandan cikilip geri gelinse bile son hale donebilir.
+   */
+  const toggleDone = () => {
+    if (!ready) {
+      onPatch({
+        status: 'done',
+        items: contract.items.map((i) => ({ ...i, done: true })),
+        undo: {
+          status: contract.status,
+          items: Object.fromEntries(contract.items.map((i) => [i.id, i.done]))
+        }
+      })
+      return
+    }
+    const snap = contract.undo
+    onPatch({
+      status: snap?.status && snap.status !== 'done' ? snap.status : 'active',
+      // Undo'dan sonra eklenen maddeler kendi durumunda kalir.
+      items: contract.items.map((i) => ({ ...i, done: snap?.items?.[i.id] ?? i.done })),
+      undo: null
+    })
+  }
+
   return (
-    <div className={`jobscreen ${ready ? 'is-ready' : ''}`}>
+    <div ref={rootRef} tabIndex={-1} className={`jobscreen ${ready ? 'is-ready' : ''}`}>
       <div className="job-bg" />
       <div className="job-bg-word">WANTED</div>
       <div className="scanlines" />
@@ -49,6 +90,7 @@ export default function JobScreen ({ t, lang, contract, crews, onPatch, onDelete
         <div className="job-title-wrap">
           <span className="job-title-tag">BAIN:</span>
           <input
+            ref={titleRef}
             className="job-title-input"
             value={contract.title}
             onChange={(e) => onPatch({ title: e.target.value })}
@@ -77,6 +119,7 @@ export default function JobScreen ({ t, lang, contract, crews, onPatch, onDelete
       </header>
 
       <div className="job-overview">{t('job.overview')}</div>
+      {isNew && <div className="job-newhint">{t('job.newHint')}</div>}
 
       <main className="job-body">
         <section className="todo">
@@ -198,7 +241,9 @@ export default function JobScreen ({ t, lang, contract, crews, onPatch, onDelete
             onAdd={onAddCrew}
           />
 
-          <button className="danger-btn" onClick={onDelete}>{t('job.delete')}</button>
+          {!isNew && (
+            <button className="danger-btn" onClick={onDelete}>{t('job.delete')}</button>
+          )}
         </aside>
       </main>
 
@@ -208,15 +253,22 @@ export default function JobScreen ({ t, lang, contract, crews, onPatch, onDelete
           <span className="hud-stat"><span className="hud-ico">▤</span>{prog.done}/{prog.total}</span>
         </div>
 
-        <button
-          className={`ready-btn ${ready ? 'is-ready' : ''}`}
-          onClick={() => onPatch({ status: ready ? 'active' : 'done' })}
-        >
-          {ready ? t('job.undo') : t('job.ready')} <i className="ready-box">{ready ? '✔' : ''}</i>
-        </button>
+        {isNew
+          ? (
+            <button className="ready-btn is-create" onClick={onCreate}>
+              {t('job.create')} <i className="ready-box">+</i>
+            </button>
+            )
+          : (
+            <button className={`ready-btn ${ready ? 'is-ready' : ''}`} onClick={toggleDone}>
+              {ready ? t('job.undo') : t('job.done')} <i className="ready-box">{ready ? '✔' : ''}</i>
+            </button>
+            )}
       </footer>
 
-      <button className="back-btn" onClick={onBack}>{t('job.back')}</button>
+      <button className="back-btn" onClick={onBack}>
+        {isNew ? t('job.cancel') : t('job.back')}
+      </button>
     </div>
   )
 }

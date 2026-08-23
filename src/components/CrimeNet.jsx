@@ -30,6 +30,7 @@ export default function CrimeNet ({
   crews,
   filters,
   setFilters,
+  onDeleteCrew,
   onOpen,
   onMoveContract,
   onQuickAction,
@@ -219,7 +220,9 @@ export default function CrimeNet ({
       el.removeEventListener('pointercancel', end)
       setDragId(null)
       markerTouchedAt.current = Date.now()
-      if (!moved) onOpen(contract.id)
+      // Ekrani pointerup islenirken degistirirsek Chromium'un girdi hedefi
+      // askida kaliyor ve yeni ekran alt-tab yapilana kadar tiklama almiyor.
+      if (!moved) requestAnimationFrame(() => onOpen(contract.id))
     }
     el.addEventListener('pointermove', move)
     el.addEventListener('pointerup', end)
@@ -238,7 +241,9 @@ export default function CrimeNet ({
     const rect = viewportRef.current.getBoundingClientRect()
     const wx = (e.clientX - rect.left - cam.x) / cam.zoom
     const wy = (e.clientY - rect.top - cam.y) / cam.zoom
-    onCreateAt(Math.round(clamp(wx, 40, WORLD_W - 40)), Math.round(clamp(wy, 40, WORLD_H - 40)))
+    const x = Math.round(clamp(wx, 40, WORLD_W - 40))
+    const y = Math.round(clamp(wy, 40, WORLD_H - 40))
+    requestAnimationFrame(() => onCreateAt(x, y))
   }
 
   const focusOn = (contract) => {
@@ -360,7 +365,9 @@ export default function CrimeNet ({
       </div>
 
       <div className="hud hud-bottomright">
-        <button className="big-key" onClick={() => onCreateAt()}>{t('map.newContract')}</button>
+        <button className="big-key" onClick={() => requestAnimationFrame(() => onCreateAt())}>
+          {t('map.newContract')}
+        </button>
       </div>
 
       {/* --- Arama --- */}
@@ -446,11 +453,18 @@ export default function CrimeNet ({
               onClick={() => setFilters({ ...filters, crew: 'all' })}
             >{t('filters.all')}</button>
             {crews.map((c) => (
-              <button
-                key={c}
-                className={`chip ${filters.crew === c ? 'is-on' : ''}`}
-                onClick={() => setFilters({ ...filters, crew: c })}
-              >{c.toUpperCase()}</button>
+              <span key={c} className="chip-wrap">
+                <button
+                  className={`chip ${filters.crew === c ? 'is-on' : ''}`}
+                  onClick={() => setFilters({ ...filters, crew: c })}
+                >{c.toUpperCase()}</button>
+                <button
+                  className="chip-del"
+                  title={t('filters.deleteCrew')}
+                  aria-label={t('filters.deleteCrew')}
+                  onClick={() => onDeleteCrew(c)}
+                >×</button>
+              </span>
             ))}
           </div>
 
@@ -501,7 +515,9 @@ export default function CrimeNet ({
           />
           <div className="ctx-menu" style={{ left: menu.x, top: menu.y }}>
             <div className="ctx-head">{menu.contract.title}</div>
-            <button onClick={() => { onOpen(menu.contract.id); setMenu(null) }}>{t('ctx.open')}</button>
+            <button onClick={() => { const id = menu.contract.id; setMenu(null); requestAnimationFrame(() => onOpen(id)) }}>
+              {t('ctx.open')}
+            </button>
             <button onClick={() => { onQuickAction('status', menu.contract.id); setMenu(null) }}>
               {menu.contract.status === 'done'
                 ? t('ctx.reopen')

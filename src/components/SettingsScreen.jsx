@@ -23,7 +23,7 @@ export default function SettingsScreen ({ t, settings, onPatch, onClose, savePat
               <button
                 key={l.id}
                 className={`chip is-big ${settings.lang === l.id ? 'is-on' : ''}`}
-                onClick={() => onPatch({ lang: l.id })}
+                onClick={() => onPatch({ lang: l.id, langPinned: true })}
               >{l.id.toUpperCase()} · {l.label}</button>
             ))}
           </div>

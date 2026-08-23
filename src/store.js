@@ -1,7 +1,7 @@
 export const WORLD_W = 2560
 export const WORLD_H = 1440
 
-export const SCHEMA_VERSION = 2
+export const SCHEMA_VERSION = 3
 const LS_KEY = 'crimenet-todo-state'
 
 export const uid = () =>
@@ -32,8 +32,8 @@ export function newContract (patch = {}) {
   const now = Date.now()
   return {
     id: uid(),
-    title: 'YENI SOZLESME',
-    crew: 'bain',
+    title: 'NEW CONTRACT',
+    crew: 'default',
     x: Math.round(WORLD_W / 2),
     y: Math.round(WORLD_H / 2),
     difficulty: 2,
@@ -44,6 +44,8 @@ export function newContract (patch = {}) {
     dueDate: '',
     tags: [],
     items: [],
+    // DONE'a basmadan onceki durum; UNDO bunu geri yukler.
+    undo: null,
     createdAt: now,
     updatedAt: now,
     completedAt: null,
@@ -57,8 +59,21 @@ export function progressOf (contract) {
   return { done, total: items.length, ratio: items.length ? done / items.length : 0 }
 }
 
+/**
+ * Isletim sisteminin dili. Electron'da Chromium locale'i Windows'un
+ * kullanici dilinden gelir; tarayicida navigator.language yeterli.
+ * Turkce disindaki her dil Ingilizceye duser.
+ */
+export function detectLang () {
+  const raw = String(
+    (typeof window !== 'undefined' && (window.pd2?.locale || window.navigator?.language)) || ''
+  ).toLowerCase()
+  return raw.startsWith('tr') ? 'tr' : 'en'
+}
+
+/** langPinned: kullanici ayarlardan dili elle sectiyse sistem dili artik ezmez. */
 export function defaultSettings () {
-  return { lang: 'tr', ripple: true }
+  return { lang: detectLang(), langPinned: false, ripple: true }
 }
 
 /** Kaydedilmis dosya eski/eksik alanlar icerse bile calisir hale getirir. */
@@ -67,23 +82,37 @@ export function normalize (raw) {
   const contracts = Array.isArray(raw.contracts) ? raw.contracts : []
   const settings = { ...defaultSettings(), ...(raw.settings || {}) }
 
+  // Eski kayitlardaki hazir listeleri bir kez yeni adlarina cevir; kullanicinin
+  // sonradan ekledigi listeler ayni isimde bile olsa v3 sonrasi el degmeden kalir.
+  const legacy = (Number(raw.version) || 1) < 3
+  const mapCrew = (name) => (legacy && LEGACY_CREWS[name]) || name
+
+  const crews = Array.isArray(raw.crews) && raw.crews.length
+    ? [...new Set(raw.crews.map(mapCrew))]
+    : defaultCrews()
+
   return {
     version: SCHEMA_VERSION,
     settings: {
-      lang: settings.lang === 'en' ? 'en' : 'tr',
+      lang: settings.langPinned && settings.lang === 'en' ? 'en'
+        : settings.langPinned ? 'tr'
+          : detectLang(),
+      langPinned: settings.langPinned === true,
       ripple: settings.ripple !== false
     },
-    crews: Array.isArray(raw.crews) && raw.crews.length ? raw.crews : defaultCrews(),
+    crews,
     contracts: contracts.map((c) => {
       const base = newContract()
       return {
         ...base,
         ...c,
         id: c.id || uid(),
+        crew: mapCrew(c.crew) || crews[0],
         x: clamp(Number(c.x) || 0, 40, WORLD_W - 40),
         y: clamp(Number(c.y) || 0, 40, WORLD_H - 40),
         difficulty: clamp(Number(c.difficulty) || 1, 1, 6),
         status: STATUSES.includes(c.status) ? c.status : 'available',
+        undo: c.undo && typeof c.undo === 'object' ? c.undo : null,
         tags: Array.isArray(c.tags) ? c.tags : [],
         items: readItems(c),
         // v1'deki gun listesi artik yok
@@ -114,8 +143,17 @@ function readItems (contract) {
   return []
 }
 
-function defaultCrews () {
-  return ['bain', 'is', 'ev', 'ogrenim', 'kisisel']
+export function defaultCrews () {
+  return ['default', 'study', 'work']
+}
+
+/** v2'ye kadar hazir gelen listeler. v3'te yerlerini default/study/work aliyor. */
+const LEGACY_CREWS = {
+  bain: 'default',
+  ev: 'default',
+  kisisel: 'default',
+  is: 'work',
+  ogrenim: 'study'
 }
 
 /**
@@ -130,82 +168,70 @@ function inDays (n) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
+/** Ornek veri iki dilde de ayni okunsun diye metinler notr tutuldu. */
 export function defaultState () {
   const mk = (patch) => newContract(patch)
+  const items = (n, doneCount = 0) =>
+    Array.from({ length: n }, (_, i) => ({
+      id: uid(),
+      title: `Item ${i + 1}`,
+      done: i < doneCount
+    }))
+
   return {
     version: SCHEMA_VERSION,
     settings: defaultSettings(),
     crews: defaultCrews(),
     contracts: [
       mk({
-        title: 'PROJE SUNUMU',
-        crew: 'is',
+        title: 'TASK 1',
+        crew: 'work',
         x: 620, y: 430,
         difficulty: 4,
         pro: true,
         status: 'active',
         payout: 45000,
         dueDate: inDays(2),
-        plan: 'Cuma gunku sunum icin slaytlar ve demo hazir olmali.\nBain: "Kimse panige kapilmasin, plana sadik kalin."',
-        items: [
-          { id: uid(), title: 'Slaytlari hazirla', done: true },
-          { id: uid(), title: 'Demo videosu cek', done: false },
-          { id: uid(), title: 'Prova yap', done: false }
-        ]
+        items: items(3, 1)
       }),
       mk({
-        title: 'SPOR SALONU',
-        crew: 'kisisel',
+        title: 'TASK 2',
+        crew: 'default',
         x: 1520, y: 760,
         difficulty: 2,
         status: 'available',
         payout: 8000,
         dueDate: inDays(9),
-        plan: 'Haftada 3 gun. Kacamak yok.',
-        items: [
-          { id: uid(), title: 'Pazartesi antrenmani', done: false },
-          { id: uid(), title: 'Carsamba antrenmani', done: false },
-          { id: uid(), title: 'Cuma antrenmani', done: false }
-        ]
+        items: items(3)
       }),
       mk({
-        title: 'FATURA ODEMELERI',
-        crew: 'ev',
+        title: 'TASK 3',
+        crew: 'default',
         x: 2020, y: 380,
         difficulty: 3,
         status: 'available',
         payout: 12500,
         dueDate: inDays(5),
-        plan: 'Ayin 15ine kadar tamami.',
-        items: [
-          { id: uid(), title: 'Elektrik', done: false },
-          { id: uid(), title: 'Internet', done: true },
-          { id: uid(), title: 'Su', done: false }
-        ]
+        items: items(3, 1)
       }),
       mk({
-        title: 'REACT DERSLERI',
-        crew: 'ogrenim',
+        title: 'TASK 4',
+        crew: 'study',
         x: 980, y: 1010,
         difficulty: 3,
         status: 'active',
         payout: 20000,
-        plan: 'Hooks ve context konularini bitir.',
-        items: [
-          { id: uid(), title: 'useReducer bolumu', done: true },
-          { id: uid(), title: 'Context bolumu', done: false }
-        ]
+        items: items(2, 1)
       }),
       mk({
-        title: 'ARSIV TEMIZLIGI',
-        crew: 'ev',
+        title: 'TASK 5',
+        crew: 'default',
         x: 1780, y: 1120,
         difficulty: 1,
         status: 'done',
         payout: 3000,
         completedAt: Date.now() - 86400000,
-        plan: 'Eski dosyalari at.',
-        items: [{ id: uid(), title: 'Kutulari ayikla', done: true }]
+        items: items(1, 1)
       })
     ]
   }

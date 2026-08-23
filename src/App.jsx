@@ -6,7 +6,7 @@ import TitleBar from './components/TitleBar'
 import { makeT } from './i18n'
 import {
   loadState, persistState, defaultState, normalize,
-  newContract, WORLD_W, WORLD_H, uid
+  newContract, defaultCrews, WORLD_W, WORLD_H, uid
 } from './store'
 
 const EMPTY_FILTERS = { query: '', status: 'all', crew: 'all', minDiff: 0, proOnly: false }
@@ -15,6 +15,8 @@ export default function App () {
   const [state, setState] = useState(null)
   const [savePath, setSavePath] = useState('')
   const [openId, setOpenId] = useState(null)
+  // Yeni sozlesme once burada durur; GOREVI EKLE'ye basilana kadar kayda girmez.
+  const [draft, setDraft] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
   const [filters, setFilters] = useState(EMPTY_FILTERS)
   const [panels, setPanels] = useState({ legend: false, filters: false })
@@ -87,14 +89,38 @@ export default function App () {
   }, [update])
 
   const createContract = useCallback((x, y) => {
-    const c = newContract({
+    setDraft(newContract({
+      title: t('contract.newTitle'),
       x: x ?? Math.round(WORLD_W / 2 + (Math.random() - 0.5) * 700),
       y: y ?? Math.round(WORLD_H / 2 + (Math.random() - 0.5) * 500),
-      crew: filters.crew !== 'all' ? filters.crew : (state?.crews[0] || 'bain')
-    })
-    update((s) => ({ ...s, contracts: [...s.contracts, c] }))
-    setOpenId(c.id)
-  }, [filters.crew, state, update])
+      crew: filters.crew !== 'all' ? filters.crew : (state?.crews[0] || defaultCrews()[0])
+    }))
+    setOpenId(null)
+  }, [filters.crew, state, t])
+
+  const patchDraft = useCallback((patch) => {
+    setDraft((d) => (d ? { ...d, ...patch } : d))
+  }, [])
+
+  const commitDraft = useCallback(() => {
+    if (!draft) return
+    const now = Date.now()
+    const contract = {
+      ...draft,
+      title: draft.title.trim() || t('contract.newTitle'),
+      createdAt: now,
+      updatedAt: now,
+      completedAt: draft.status === 'done' ? now : null
+    }
+    update((s) => ({ ...s, contracts: [...s.contracts, contract] }))
+    setDraft(null)
+    flash('toast.created')
+  }, [draft, update, t])
+
+  const cancelDraft = useCallback(() => {
+    setDraft(null)
+    flash('toast.discarded')
+  }, [t])
 
   const deleteContract = useCallback((id) => {
     const c = state?.contracts.find((x) => x.id === id)
@@ -136,6 +162,17 @@ export default function App () {
   const addCrew = useCallback((name) => {
     update((s) => (s.crews.includes(name) ? s : { ...s, crews: [...s.crews, name] }))
   }, [update])
+
+  /** Listeye atanmis sozlesme varsa silmez; once onlarin tasinmasi gerekir. */
+  const deleteCrew = useCallback((name) => {
+    if (!state) return
+    const used = state.contracts.filter((c) => c.crew === name).length
+    if (used) return flash('toast.crewInUse', { name: name.toUpperCase(), n: used })
+    if (state.crews.length <= 1) return flash('toast.crewLast')
+    update((s) => ({ ...s, crews: s.crews.filter((c) => c !== name) }))
+    setFilters((f) => (f.crew === name ? { ...f, crew: 'all' } : f))
+    flash('toast.crewDeleted', { name: name.toUpperCase() })
+  }, [state, update, t])
 
   const togglePanel = useCallback((key) => {
     setPanels((p) => ({ legend: false, filters: false, [key]: !p[key] }))
@@ -205,13 +242,14 @@ export default function App () {
       const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
       if (e.key === 'Escape') {
         if (showSettings) setShowSettings(false)
+        else if (draft) cancelDraft()
         else if (openId) setOpenId(null)
         else setPanels({ legend: false, filters: false })
         document.activeElement?.blur?.()
         return
       }
       if (typing || e.ctrlKey || e.altKey || e.metaKey) return
-      if (openId || showSettings) return
+      if (openId || showSettings || draft) return
       const k = e.key.toLowerCase()
       if (k === 'n') { e.preventDefault(); createContract() }
       else if (k === 'f') { e.preventDefault(); togglePanel('filters') }
@@ -223,7 +261,7 @@ export default function App () {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [openId, showSettings, createContract, togglePanel])
+  }, [openId, showSettings, draft, cancelDraft, createContract, togglePanel])
 
   if (!state) {
     return (
@@ -257,37 +295,52 @@ export default function App () {
               onClose={() => setShowSettings(false)}
             />
             )
-          : openContract
+          : draft
             ? (
               <JobScreen
                 t={t}
                 lang={lang}
-                contract={openContract}
+                isNew
+                contract={draft}
                 crews={state.crews}
-                onPatch={(patch) => patchContract(openContract.id, patch)}
-                onDelete={() => deleteContract(openContract.id)}
-                onBack={() => setOpenId(null)}
+                onPatch={patchDraft}
+                onCreate={commitDraft}
+                onBack={cancelDraft}
                 onAddCrew={addCrew}
               />
               )
-            : (
-              <CrimeNet
-                t={t}
-                lang={lang}
-                ripple={state.settings.ripple}
-                contracts={visible}
-                allContracts={state.contracts}
-                crews={state.crews}
-                filters={filters}
-                setFilters={setFilters}
-                onOpen={setOpenId}
-                onMoveContract={moveContract}
-                onQuickAction={quickAction}
-                onCreateAt={createContract}
-                panels={panels}
-                togglePanel={togglePanel}
-              />
-              )}
+            : openContract
+              ? (
+                <JobScreen
+                  t={t}
+                  lang={lang}
+                  contract={openContract}
+                  crews={state.crews}
+                  onPatch={(patch) => patchContract(openContract.id, patch)}
+                  onDelete={() => deleteContract(openContract.id)}
+                  onBack={() => setOpenId(null)}
+                  onAddCrew={addCrew}
+                />
+                )
+              : (
+                <CrimeNet
+                  t={t}
+                  lang={lang}
+                  ripple={state.settings.ripple}
+                  contracts={visible}
+                  allContracts={state.contracts}
+                  crews={state.crews}
+                  filters={filters}
+                  setFilters={setFilters}
+                  onDeleteCrew={deleteCrew}
+                  onOpen={setOpenId}
+                  onMoveContract={moveContract}
+                  onQuickAction={quickAction}
+                  onCreateAt={createContract}
+                  panels={panels}
+                  togglePanel={togglePanel}
+                />
+                )}
       </div>
 
       {toast && <div className="toast" key={toast.id}>{toast.msg}</div>}
