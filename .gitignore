@@ -1,11 +1,18 @@
+# NOT: .gitignore'da satir ici yorum yoktur. `#` yalnizca satirin basindayken
+# yorum baslatir; desenin yanina yazilirsa desenin parcasi olur ve kural calismaz.
+# Her yorum bu yuzden kendi satirinda duruyor.
+
 # --- Bagimliliklar ---
 # npm install ile geri gelir, asla commit'lenmez (yuzlerce MB)
 node_modules/
 
 # --- Uretilen ciktilar ---
-dist/                 # Vite derlemesi (npm run build)
-release/              # electron-builder ciktisi, 70+ MB exe icerir
-build/icon.ico        # scripts/make-icon.cjs uretir
+# Vite derlemesi (npm run build)
+dist/
+# electron-builder ciktisi, 70+ MB exe icerir
+release/
+# scripts/make-icon.cjs uretir
+build/icon.ico
 
 # NOT: build/ klasorunun kendisi yoksayilmiyor. Ileride oraya elle bir kaynak
 # eklersen (installer arkaplani, hazir bir .ico) commit'lenebilsin diye.
