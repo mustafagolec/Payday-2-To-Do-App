@@ -1,4 +1,4 @@
-# CRIME.NET — a Payday 2 themed to-do app
+# a Payday 2 themed to-do app
 
 A desktop to-do list that looks and behaves like the **Crime.net** contract board from
 Payday 2. Your tasks are "contracts" pinned to a 2560×1440 city map. The window shows
