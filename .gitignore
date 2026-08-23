@@ -1,0 +1,29 @@
+# --- Bagimliliklar ---
+# npm install ile geri gelir, asla commit'lenmez (yuzlerce MB)
+node_modules/
+
+# --- Uretilen ciktilar ---
+dist/                 # Vite derlemesi (npm run build)
+release/              # electron-builder ciktisi, 70+ MB exe icerir
+build/icon.ico        # scripts/make-icon.cjs uretir
+
+# NOT: build/ klasorunun kendisi yoksayilmiyor. Ileride oraya elle bir kaynak
+# eklersen (installer arkaplani, hazir bir .ico) commit'lenebilsin diye.
+
+# --- Yerel ayar ve gunlukler ---
+*.log
+npm-debug.log*
+.env
+.env.*
+*.local
+
+# --- Editor ---
+.vscode/
+.idea/
+*.swp
+
+# --- Windows / macOS artiklari ---
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+.DS_Store
