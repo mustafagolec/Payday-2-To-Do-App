@@ -17,15 +17,6 @@ function mulberry32 (seed) {
 const CELL = 160          // ana izgara: 16 x 9 kare
 const SUB = CELL / 4      // ara izgara: 40px
 
-const DISTRICTS = [
-  { name: 'GEORGETOWN', x: 320, y: 400 },
-  { name: 'WEST END', x: 880, y: 640 },
-  { name: 'FOGGY BOTTOM', x: 800, y: 1040 },
-  { name: 'SHAW', x: 1840, y: 400 },
-  { name: 'DOWNTOWN', x: 1920, y: 1040 },
-  { name: 'NORTH BAY', x: 1360, y: 160 }
-]
-
 function buildCity () {
   const rnd = mulberry32(20131113)
 
@@ -59,7 +50,7 @@ function buildCity () {
   return { cols, rows, blocks }
 }
 
-export default function CityMap () {
+export default function CityMap ({ groups = [], editing = false, dragId = null, onGroupPointerDown }) {
   const city = useMemo(buildCity, [])
 
   return (
@@ -68,7 +59,7 @@ export default function CityMap () {
       width={WORLD_W}
       height={WORLD_H}
       viewBox={`0 0 ${WORLD_W} ${WORLD_H}`}
-      aria-hidden="true"
+      aria-hidden={editing ? undefined : 'true'}
     >
       <defs>
         <radialGradient id="cm-glow" cx="50%" cy="45%" r="72%">
@@ -103,9 +94,16 @@ export default function CityMap () {
 
       <rect width={WORLD_W} height={WORLD_H} fill="url(#cm-main)" />
 
-      <g className="cm-districts">
-        {DISTRICTS.map((d) => (
-          <text key={d.name} x={d.x} y={d.y} textAnchor="middle">{d.name}</text>
+      <g className={`cm-districts ${editing ? 'is-editing' : ''}`}>
+        {groups.map((g) => (
+          <text
+            key={g.id}
+            className={dragId === g.id ? 'is-dragging' : undefined}
+            x={g.x}
+            y={g.y}
+            textAnchor="middle"
+            onPointerDown={editing ? (e) => onGroupPointerDown?.(e, g) : undefined}
+          >{g.name}</text>
         ))}
       </g>
 

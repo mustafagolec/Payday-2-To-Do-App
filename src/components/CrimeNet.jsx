@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import CityMap from './CityMap'
 import ContractMarker from './ContractMarker'
-import { WORLD_W, WORLD_H, clamp, money, progressOf, DIFFICULTIES, uid } from '../store'
+import { WORLD_W, WORLD_H, clamp, money, progressOf, DIFFICULTIES, GROUP_NAME_MAX, uid } from '../store'
 
 const MAX_ZOOM = 1.6
 const FRICTION = 0.92          // her 16ms'de hizin korunan orani
@@ -28,9 +28,14 @@ export default function CrimeNet ({
   contracts,
   allContracts,
   crews,
+  groups = [],
   filters,
   setFilters,
   onDeleteCrew,
+  onAddGroup,
+  onRenameGroup,
+  onDeleteGroup,
+  onMoveGroup,
   onOpen,
   onMoveContract,
   onQuickAction,
@@ -46,6 +51,9 @@ export default function CrimeNet ({
 
   const [panning, setPanning] = useState(false)
   const [dragId, setDragId] = useState(null)
+  const [dragGroupId, setDragGroupId] = useState(null)
+  // Gruplar ancak bu acikken suruklenebilir; normalde tiklama haritayi kaydirir.
+  const [groupEdit, setGroupEdit] = useState(false)
   const [menu, setMenu] = useState(null)
   const [ripples, setRipples] = useState([])
 
@@ -229,6 +237,42 @@ export default function CrimeNet ({
     el.addEventListener('pointercancel', end)
   }, [onMoveContract, onOpen])
 
+  /** Isaretci suruklemesinin aynisi; fark: dunya konumu grupta tutuluyor. */
+  const handleGroupDown = useCallback((e, group) => {
+    if (e.button === 2) return
+    e.stopPropagation()
+    setMenu(null)
+    stopGlide()
+    const el = e.currentTarget
+    el.setPointerCapture(e.pointerId)
+    const start = { sx: e.clientX, sy: e.clientY, cx: group.x, cy: group.y }
+    let moved = false
+
+    const move = (ev) => {
+      if (!moved && Math.hypot(ev.clientX - start.sx, ev.clientY - start.sy) > 3) {
+        moved = true
+        setDragGroupId(group.id)
+      }
+      if (!moved) return
+      const z = camRef.current.zoom
+      onMoveGroup(
+        group.id,
+        Math.round(clamp(start.cx + (ev.clientX - start.sx) / z, 60, WORLD_W - 60)),
+        Math.round(clamp(start.cy + (ev.clientY - start.sy) / z, 60, WORLD_H - 60))
+      )
+    }
+    const end = () => {
+      el.releasePointerCapture?.(e.pointerId)
+      el.removeEventListener('pointermove', move)
+      el.removeEventListener('pointerup', end)
+      el.removeEventListener('pointercancel', end)
+      setDragGroupId(null)
+    }
+    el.addEventListener('pointermove', move)
+    el.addEventListener('pointerup', end)
+    el.addEventListener('pointercancel', end)
+  }, [onMoveGroup])
+
   const openMenu = useCallback((e, contract) => {
     e.preventDefault()
     e.stopPropagation()
@@ -237,6 +281,8 @@ export default function CrimeNet ({
 
   const handleDoubleClick = (e) => {
     if (e.target.closest('.marker')) return
+    // Duzenleme modunda grup yazisina cift tiklamak sozlesme yaratmasin.
+    if (e.target.closest?.('.cm-districts')) return
     if (Date.now() - markerTouchedAt.current < 600) return
     const rect = viewportRef.current.getBoundingClientRect()
     const wx = (e.clientX - rect.left - cam.x) / cam.zoom
@@ -246,16 +292,29 @@ export default function CrimeNet ({
     requestAnimationFrame(() => onCreateAt(x, y))
   }
 
-  const focusOn = (contract) => {
+  const focusPoint = (x, y) => {
     stopGlide()
     const rect = viewportRef.current.getBoundingClientRect()
     setCam((c) =>
       clampCam(
-        { zoom: c.zoom, x: rect.width / 2 - contract.x * c.zoom, y: rect.height / 2 - contract.y * c.zoom },
+        { zoom: c.zoom, x: rect.width / 2 - x * c.zoom, y: rect.height / 2 - y * c.zoom },
         rect.width,
         rect.height
       )
     )
+  }
+
+  const focusOn = (contract) => focusPoint(contract.x, contract.y)
+
+  /** Yeni grup gorunumun ortasina dusuyor ki eklendigi anda gorulebilsin. */
+  const addGroupAtCenter = () => {
+    const rect = viewportRef.current.getBoundingClientRect()
+    const c = camRef.current
+    onAddGroup(
+      Math.round(clamp((rect.width / 2 - c.x) / c.zoom, 60, WORLD_W - 60)),
+      Math.round(clamp((rect.height / 2 - c.y) / c.zoom, 60, WORLD_H - 60))
+    )
+    setGroupEdit(true)
   }
 
   const jumpFromMinimap = (e) => {
@@ -315,7 +374,12 @@ export default function CrimeNet ({
             transform: `translate3d(${cam.x}px, ${cam.y}px, 0) scale(${cam.zoom})`
           }}
         >
-          <CityMap />
+          <CityMap
+            groups={groups}
+            editing={groupEdit}
+            dragId={dragGroupId}
+            onGroupPointerDown={handleGroupDown}
+          />
 
           <div className="markers">
             {ripples.map((r) => (
@@ -350,6 +414,9 @@ export default function CrimeNet ({
         <button className="hud-key" onClick={() => togglePanel('legend')}>
           {panels.legend ? t('map.legendHide') : t('map.legendShow')}
         </button>
+        <button className="hud-key" onClick={() => togglePanel('groups')}>
+          {t('map.groups')}
+        </button>
       </div>
 
       <div className="hud hud-topright">
@@ -363,6 +430,14 @@ export default function CrimeNet ({
         <div className="hud-stat"><span className="hud-ico">✔</span>{stats.done}</div>
         <div className="hud-stat"><span className="hud-ico">▤</span>{stats.itemsDone}/{stats.items}</div>
       </div>
+
+      {groupEdit && (
+        <div className="hud hud-groupmode">
+          <button className="hud-warn" onClick={() => setGroupEdit(false)}>
+            {t('groups.dragOn')}
+          </button>
+        </div>
+      )}
 
       <div className="hud hud-bottomright">
         <button className="big-key" onClick={() => requestAnimationFrame(() => onCreateAt())}>
@@ -403,6 +478,52 @@ export default function CrimeNet ({
           }}
         />
       </div>
+
+      {/* --- Gruplar --- */}
+      {panels.groups && (
+        <div className="panel panel-groups">
+          <h3>{t('groups.title')}</h3>
+          <p className="panel-help">{t('groups.help')}</p>
+
+          <label className="fl-toggle">
+            <input
+              type="checkbox"
+              checked={groupEdit}
+              onChange={(e) => setGroupEdit(e.target.checked)}
+            />
+            <span>{t('groups.dragMode')}</span>
+          </label>
+
+          <div className="group-list">
+            {groups.map((g) => (
+              <div key={g.id} className={`group-row ${dragGroupId === g.id ? 'is-dragging' : ''}`}>
+                <input
+                  className="group-input"
+                  value={g.name}
+                  maxLength={GROUP_NAME_MAX}
+                  placeholder={t('groups.namePlaceholder')}
+                  onChange={(e) => onRenameGroup(g.id, e.target.value)}
+                />
+                <button
+                  className="group-btn"
+                  title={t('groups.locate')}
+                  aria-label={t('groups.locate')}
+                  onClick={() => focusPoint(g.x, g.y)}
+                >◎</button>
+                <button
+                  className="group-btn is-danger"
+                  title={t('groups.delete')}
+                  aria-label={t('groups.delete')}
+                  onClick={() => onDeleteGroup(g.id)}
+                >×</button>
+              </div>
+            ))}
+            {groups.length === 0 && <p className="group-empty">{t('groups.empty')}</p>}
+          </div>
+
+          <button className="ghost-btn" onClick={addGroupAtCenter}>{t('groups.add')}</button>
+        </div>
+      )}
 
       {/* --- Legend --- */}
       {panels.legend && (

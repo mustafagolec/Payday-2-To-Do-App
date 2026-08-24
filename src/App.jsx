@@ -6,7 +6,7 @@ import TitleBar from './components/TitleBar'
 import { makeT } from './i18n'
 import {
   loadState, persistState, defaultState, normalize,
-  newContract, defaultCrews, WORLD_W, WORLD_H, uid
+  newContract, newGroup, defaultCrews, GROUP_NAME_MAX, WORLD_W, WORLD_H, uid
 } from './store'
 
 const EMPTY_FILTERS = { query: '', status: 'all', crew: 'all', minDiff: 0, proOnly: false }
@@ -19,7 +19,7 @@ export default function App () {
   const [draft, setDraft] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
   const [filters, setFilters] = useState(EMPTY_FILTERS)
-  const [panels, setPanels] = useState({ legend: false, filters: false })
+  const [panels, setPanels] = useState({ legend: false, filters: false, groups: false })
   const [toast, setToast] = useState(null)
   const [saving, setSaving] = useState('idle')
 
@@ -174,8 +174,35 @@ export default function App () {
     flash('toast.crewDeleted', { name: name.toUpperCase() })
   }, [state, update, t])
 
+  const addGroup = useCallback((x, y) => {
+    update((s) => ({ ...s, groups: [...s.groups, newGroup({ name: t('groups.newName'), x, y })] }))
+    flash('toast.groupAdded')
+  }, [update, t])
+
+  const renameGroup = useCallback((id, name) => {
+    update((s) => ({
+      ...s,
+      groups: s.groups.map((g) => (g.id === id ? { ...g, name: name.slice(0, GROUP_NAME_MAX) } : g))
+    }))
+  }, [update])
+
+  const deleteGroup = useCallback((id) => {
+    const g = state?.groups.find((x) => x.id === id)
+    if (!g) return
+    if (!window.confirm(t('confirm.groupDelete', { name: g.name || '—' }))) return
+    update((s) => ({ ...s, groups: s.groups.filter((x) => x.id !== id) }))
+    flash('toast.groupDeleted')
+  }, [state, update, t])
+
+  const moveGroup = useCallback((id, x, y) => {
+    update((s) => ({
+      ...s,
+      groups: s.groups.map((g) => (g.id === id ? { ...g, x, y } : g))
+    }))
+  }, [update])
+
   const togglePanel = useCallback((key) => {
-    setPanels((p) => ({ legend: false, filters: false, [key]: !p[key] }))
+    setPanels((p) => ({ legend: false, filters: false, groups: false, [key]: !p[key] }))
   }, [])
 
   const exportData = async () => {
@@ -244,7 +271,7 @@ export default function App () {
         if (showSettings) setShowSettings(false)
         else if (draft) cancelDraft()
         else if (openId) setOpenId(null)
-        else setPanels({ legend: false, filters: false })
+        else setPanels({ legend: false, filters: false, groups: false })
         document.activeElement?.blur?.()
         return
       }
@@ -254,6 +281,7 @@ export default function App () {
       if (k === 'n') { e.preventDefault(); createContract() }
       else if (k === 'f') { e.preventDefault(); togglePanel('filters') }
       else if (k === 'l') { e.preventDefault(); togglePanel('legend') }
+      else if (k === 'g') { e.preventDefault(); togglePanel('groups') }
       else if (k === '/') {
         e.preventDefault()
         document.querySelector('.search-input')?.focus()
@@ -330,9 +358,14 @@ export default function App () {
                   contracts={visible}
                   allContracts={state.contracts}
                   crews={state.crews}
+                  groups={state.groups}
                   filters={filters}
                   setFilters={setFilters}
                   onDeleteCrew={deleteCrew}
+                  onAddGroup={addGroup}
+                  onRenameGroup={renameGroup}
+                  onDeleteGroup={deleteGroup}
+                  onMoveGroup={moveGroup}
                   onOpen={setOpenId}
                   onMoveContract={moveContract}
                   onQuickAction={quickAction}

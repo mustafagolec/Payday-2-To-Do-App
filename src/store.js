@@ -1,7 +1,7 @@
 export const WORLD_W = 2560
 export const WORLD_H = 1440
 
-export const SCHEMA_VERSION = 3
+export const SCHEMA_VERSION = 4
 const LS_KEY = 'crimenet-todo-state'
 
 export const uid = () =>
@@ -53,6 +53,31 @@ export function newContract (patch = {}) {
   }
 }
 
+/** Harita zeminindeki bolge yazisi. Sozlesmelere bagli degil, sadece etikettir. */
+export function newGroup (patch = {}) {
+  return {
+    id: uid(),
+    name: 'NEW GROUP',
+    x: Math.round(WORLD_W / 2),
+    y: Math.round(WORLD_H / 2),
+    ...patch
+  }
+}
+
+export const GROUP_NAME_MAX = 40
+
+/** v4 oncesi kayitlarda grup yok; bu liste eskiden CityMap icinde sabitti. */
+export function defaultGroups () {
+  return [
+    { name: 'GEORGETOWN', x: 320, y: 400 },
+    { name: 'WEST END', x: 880, y: 640 },
+    { name: 'FOGGY BOTTOM', x: 800, y: 1040 },
+    { name: 'SHAW', x: 1840, y: 400 },
+    { name: 'DOWNTOWN', x: 1920, y: 1040 },
+    { name: 'NORTH BAY', x: 1360, y: 160 }
+  ].map((g) => newGroup(g))
+}
+
 export function progressOf (contract) {
   const items = contract.items || []
   const done = items.filter((i) => i.done).length
@@ -91,6 +116,17 @@ export function normalize (raw) {
     ? [...new Set(raw.crews.map(mapCrew))]
     : defaultCrews()
 
+  // Anahtar hic yoksa (v4 oncesi kayit) hazir gruplar gelir; bos dizi ise
+  // kullanici hepsini silmis demektir, geri getirmeyiz.
+  const groups = Array.isArray(raw.groups)
+    ? raw.groups.map((g) => ({
+        id: g?.id || uid(),
+        name: String(g?.name ?? '').slice(0, GROUP_NAME_MAX),
+        x: clamp(Number(g?.x) || 0, 60, WORLD_W - 60),
+        y: clamp(Number(g?.y) || 0, 60, WORLD_H - 60)
+      }))
+    : defaultGroups()
+
   return {
     version: SCHEMA_VERSION,
     settings: {
@@ -101,6 +137,7 @@ export function normalize (raw) {
       ripple: settings.ripple !== false
     },
     crews,
+    groups,
     contracts: contracts.map((c) => {
       const base = newContract()
       return {
@@ -182,6 +219,7 @@ export function defaultState () {
     version: SCHEMA_VERSION,
     settings: defaultSettings(),
     crews: defaultCrews(),
+    groups: defaultGroups(),
     contracts: [
       mk({
         title: 'TASK 1',

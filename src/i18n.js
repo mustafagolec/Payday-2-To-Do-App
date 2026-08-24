@@ -30,6 +30,7 @@ const dict = {
     'map.legendHide': '[L] LEGEND GIZLE',
     'map.filters': '[F] FILTRELER',
     'map.newContract': 'YENI SOZLESME [N]',
+    'map.groups': '[G] GRUPLAR',
     'map.search': 'SOZLESME ARA…',
 
     // Legend
@@ -62,6 +63,18 @@ const dict = {
     'filters.jump': 'SOZLESMEYE GIT',
     'filters.all': 'HEPSI',
     'filters.deleteCrew': 'Bu listeyi sil',
+
+    // Gruplar (harita zemindeki bolge yazilari)
+    'groups.title': 'GRUPLAR',
+    'groups.help': 'Haritanin arkasindaki bolge yazilari. Adini degistir, yeni ekle, sil veya haritada tasi.',
+    'groups.dragMode': 'HARITADA TASIMAYI AC',
+    'groups.dragOn': '● GRUP TASIMA ACIK — KAPATMAK ICIN TIKLA',
+    'groups.add': '+ YENI GRUP',
+    'groups.newName': 'YENI GRUP',
+    'groups.delete': 'Grubu sil',
+    'groups.locate': 'Haritada goster',
+    'groups.namePlaceholder': 'Grup adi…',
+    'groups.empty': 'Hic grup yok. Asagidan ekleyebilirsin.',
 
     // Durumlar
     'status.available': 'BEKLEMEDE',
@@ -140,11 +153,14 @@ const dict = {
     'toast.crewLast': 'Son liste silinemez — en az bir liste kalmali',
     'toast.crewDeleted': '"{name}" listesi silindi',
     'toast.created': 'Sozlesme eklendi',
+    'toast.groupAdded': 'Grup eklendi — adini yazip haritada yerine tasiyabilirsin',
+    'toast.groupDeleted': 'Grup silindi',
     'toast.discarded': 'Yeni sozlesme eklenmedi',
     'toast.allDone': 'Tum maddeler tamamlandi',
     'confirm.delete': '"{title}" sozlesmesi silinsin mi?',
     'confirm.import': 'Mevcut kayit bu dosyayla degistirilecek. Devam edilsin mi?',
     'confirm.reset': 'Tum sozlesmeler silinip ornek veri geri yuklensin mi?',
+    'confirm.groupDelete': '"{name}" grubu silinsin mi?',
     'boot': 'CRIME.NET BAGLANIYOR…'
   },
 
@@ -172,6 +188,7 @@ const dict = {
     'map.legendHide': '[L] HIDE LEGEND',
     'map.filters': '[F] FILTERS',
     'map.newContract': 'NEW CONTRACT [N]',
+    'map.groups': '[G] GROUPS',
     'map.search': 'SEARCH CONTRACTS…',
 
     'legend.title': 'LEGEND',
@@ -202,6 +219,17 @@ const dict = {
     'filters.jump': 'JUMP TO CONTRACT',
     'filters.all': 'ALL',
     'filters.deleteCrew': 'Delete this list',
+
+    'groups.title': 'GROUPS',
+    'groups.help': 'The district labels behind the map. Rename, add, delete or drag them around.',
+    'groups.dragMode': 'ENABLE DRAGGING ON MAP',
+    'groups.dragOn': '● GROUP DRAGGING ON — CLICK TO TURN OFF',
+    'groups.add': '+ NEW GROUP',
+    'groups.newName': 'NEW GROUP',
+    'groups.delete': 'Delete group',
+    'groups.locate': 'Show on map',
+    'groups.namePlaceholder': 'Group name…',
+    'groups.empty': 'No groups yet. Add one below.',
 
     'status.available': 'PENDING',
     'status.active': 'IN PROGRESS',
@@ -274,11 +302,14 @@ const dict = {
     'toast.crewLast': 'Cannot delete the last list — at least one must remain',
     'toast.crewDeleted': 'List "{name}" deleted',
     'toast.created': 'Contract added',
+    'toast.groupAdded': 'Group added — name it and drag it into place',
+    'toast.groupDeleted': 'Group deleted',
     'toast.discarded': 'New contract discarded',
     'toast.allDone': 'All tasks marked complete',
     'confirm.delete': 'Delete contract "{title}"?',
     'confirm.import': 'Your current save will be replaced by this file. Continue?',
     'confirm.reset': 'Delete all contracts and restore the sample data?',
+    'confirm.groupDelete': 'Delete group "{name}"?',
     'boot': 'CONNECTING TO CRIME.NET…'
   }
 }

@@ -173,8 +173,19 @@ input, textarea, select { font-family: inherit; font-weight: 300; user-select: t
   font-size: 54px;
   font-weight: 600;
   letter-spacing: 0.34em;
+  user-select: none;
 }
-.markers { position: absolute; inset: 0; }
+/* Duzenleme kapaliyken yazilar tiklamayi yutmasin: harita normal kaysin. */
+.cm-districts text { pointer-events: none; }
+.cm-districts.is-editing text {
+  pointer-events: all;
+  cursor: grab;
+  opacity: 0.42;
+  fill: var(--cyan);
+}
+.cm-districts.is-editing text:hover { opacity: 0.75; }
+.cm-districts.is-editing text.is-dragging { opacity: 1; cursor: grabbing; fill: var(--gold); }
+.markers { position: absolute; inset: 0; pointer-events: none; }
 
 .scanlines {
   position: absolute;
@@ -224,6 +235,7 @@ input, textarea, select { font-family: inherit; font-weight: 300; user-select: t
 
 /* ---------- Sozlesme isaretcisi ---------- */
 .marker {
+  pointer-events: auto;
   position: absolute;
   transform: translate(-6px, -54px);
   cursor: pointer;
@@ -340,6 +352,7 @@ input, textarea, select { font-family: inherit; font-weight: 300; user-select: t
 .hud-bottomleft { bottom: 16px; left: 20px; display: flex; flex-direction: column; gap: 4px; }
 .hud-bottomright { bottom: 16px; right: 20px; }
 .hud-search { top: 14px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; }
+.hud-groupmode { bottom: 18px; left: 50%; transform: translateX(-50%); }
 
 .hud-line {
   font-size: 14px;
@@ -361,6 +374,19 @@ input, textarea, select { font-family: inherit; font-weight: 300; user-select: t
   text-shadow: 0 2px 8px #000;
 }
 .hud-key:hover { color: #b6e8ff; }
+
+/* Grup tasima modu acikken kaybolmasin diye HUD ustunde duran uyari. */
+.hud-warn {
+  display: block;
+  background: rgba(226, 121, 58, 0.14);
+  border: 1px solid rgba(226, 121, 58, 0.6);
+  padding: 3px 8px;
+  color: var(--gold);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+}
+.hud-warn:hover { background: rgba(226, 121, 58, 0.28); color: #ffe1c0; }
 
 .hud-stat {
   display: flex;
@@ -469,6 +495,8 @@ input, textarea, select { font-family: inherit; font-weight: 300; user-select: t
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.65);
 }
 .panel-legend { left: 20px; }
+/* Sol ust HUD bir dugme daha tasiyor; panel onun altindan baslasin. */
+.panel-groups { left: 20px; top: 88px; max-height: calc(100% - 160px); }
 .panel-filters { right: 20px; }
 .panel h3 {
   margin: 0 0 14px;
@@ -499,6 +527,45 @@ input, textarea, select { font-family: inherit; font-weight: 300; user-select: t
 .lg-done { background: #4e6a7e; border-color: #4e6a7e; }
 .lg-pro { background: var(--red); border-color: var(--red); }
 .lg-late { background: var(--red); animation: latepulse 1.4s infinite; }
+
+.panel-help {
+  margin: -6px 0 14px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.group-list { display: flex; flex-direction: column; gap: 6px; margin: 14px 0 16px; }
+.group-row { display: flex; align-items: center; gap: 6px; }
+.group-row.is-dragging .group-input { border-color: var(--gold); color: var(--gold); }
+.group-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: rgba(88, 200, 245, 0.06);
+  border: 1px solid var(--line-soft);
+  color: rgba(226, 242, 253, 0.92);
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  padding: 7px 9px;
+}
+.group-input:focus { outline: none; border-color: var(--cyan); }
+.group-btn {
+  flex: 0 0 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: rgba(88, 200, 245, 0.06);
+  border: 1px solid var(--line-soft);
+  color: var(--cyan-dim);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.group-btn:hover { border-color: var(--cyan); color: var(--white); }
+.group-btn.is-danger:hover { border-color: var(--red); background: var(--red); color: #fff; }
+.group-empty { font-size: 12px; color: var(--muted); margin: 4px 0; }
 
 .legend-help { font-size: 12px; line-height: 1.9; color: var(--muted); }
 .legend-help b { color: var(--cyan); font-weight: 400; }
