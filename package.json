@@ -1,8 +1,8 @@
 {
   "name": "crimenet-todo",
   "productName": "CRIME.NET",
-  "version": "1.0.0",
-  "description": "Payday 2 Crime.net temali gorev yoneticisi",
+  "version": "1.0.2",
+  "description": "Payday 2 Crime.net themed to-do application",
   "private": true,
   "type": "module",
   "main": "electron/main.cjs",
