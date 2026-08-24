@@ -10,6 +10,10 @@ date, a priority (the risk skulls), and notes.
 
 **Windows only.** Interface available in English and Turkish.
 
+<img width="1920" height="1020" alt="CRIME NET 24 08 2026 11_24_24" src="https://github.com/user-attachments/assets/754b2b8a-53dd-4984-8c81-29efbf97168e" />
+
+<img width="1920" height="1020" alt="CRIME NET 24 08 2026 11_24_36" src="https://github.com/user-attachments/assets/ff0f6357-afe7-4004-bca6-3688d4eedadf" />
+
 ---
 
 ## Part 1 — Install and run
